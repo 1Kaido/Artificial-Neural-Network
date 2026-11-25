@@ -24,7 +24,7 @@ def reLU_derivative(Z):
     return (Z > 0).astype(float)
 
 def forward_propogation(W,B,X):
-    print("fp",X.shape,W.T.shape)
+    #print("fp",X.shape,W.T.shape)
     Z = (np.dot(X,W.T)) + B
     A = relu(Z)
     #print("Z",Z)
@@ -36,8 +36,8 @@ def build_layers(layer,neuron,X):
     layers = {}
     for i in range(layer):
         w,b = init(X.shape[1],neuron)
-        print(f"layer {i} neuron {neuron}")
-        print(f"weights {np.array(w).shape} bias {np.array(b).shape}")
+        #print(f"layer {i} neuron {neuron}")
+        #print(f"weights {np.array(w).shape} bias {np.array(b).shape}")
 
         Z,A = forward_propogation(w,b,X)
         layers[i] = {
@@ -50,47 +50,26 @@ def build_layers(layer,neuron,X):
 
         pprint(f"Z {np.array(Z).shape} A {np.array(A).shape}")
         X = A
-    pprint(layers)
+    #pprint(layers)
     return Z,A, layers
 
-def prediction(A):
-    w, b = init(A.shape[1], 1)
-    Z = np.dot(A, w.T) + b
-    pred = sigmoid(Z)
-    print("prediction output")
-    output = {"weights":w,"bias":b,"Z": Z,"previous": A,"pred": pred}
-    pprint(output)
-    return pred,output
-
-def calculate_loss(y, pred):
-    m = len(y)
-    y = y.reshape(-1, 1)
-    pred = np.clip(pred, 1e-15, 1 - 1e-15)
-    L = -np.mean(
-        y * np.log(pred) +
-        (1-y) * np.log(1-pred)
-    )
-    return L
-
-
-
-def backward_pass(learning_rate=0.01):
+def backward_propogation(layers,output_layer,y,learning_rate=0.01):
     m = np.array(y.shape[0])
     dz = output_layer["pred"] - y 
     dw = 1/m * (dz @ output_layer["previous"])
     db = np.sum(dz)
     dw_out = output_layer["weights"]
     #update output layers also 
-
-    output_layer["weights"] -= learning_rate*dw
-    output_layer["bias"] -= learning_rate*db
+    #print(np.array(dw).shape,np.array(db).shape)
+    #print(" h",np.array(output_layers["weights"]).shape)
+    #output_layer["weights"] -= learning_rate*dw
+    #output_layer["bias"] -= learning_rate*db
     #hidden layers
     for idx in reversed(layers):
-        W = layers[idx]["weights"]
         
-        dA = dz @ dw_out 
+        dA = np.dot(dz,dw_out.T)
         dZ = dA * reLU_derivative(layers[idx]["Z"])
-        dW = 1/m * dZ @ layers[idx]["A"]
+        dW = dZ.T @ layers[idx]["previous"] / m 
         #print(np.array(dZ).shape)
         dB = 1/m * np.sum(dZ)
 
@@ -103,3 +82,12 @@ def backward_pass(learning_rate=0.01):
         #now pass new val to next layer 
         dz = dZ
         dw = dw_out
+
+def prediction(A):
+    w, b = init(A.shape[1], 1)
+    Z = np.dot(A, w.T) + b
+    pred = sigmoid(Z)
+    #print("prediction output")
+    output = {"weights":w,"bias":b,"Z": Z,"previous": A,"pred": pred}
+    #pprint(output)
+    return pred,output
